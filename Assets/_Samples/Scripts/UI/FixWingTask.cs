@@ -56,9 +56,13 @@ namespace Wilson.Player
         // Update is called once per frame
         void Update()
         {
+            Vector3 mousePos = Input.mousePosition;
+            mousePos.z = 0f; // 또는 Camera.main.nearClipPlane
+            Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
+
             if (Input.GetMouseButtonDown(0))
             {
-                RaycastHit2D hit = Physics2D.Raycast(Input.mousePosition, Vector2.right, 1f);
+                RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
                 if (hit.collider != null)
                 {
                     var left = hit.collider.GetComponentInParent<LeftWire>();
@@ -73,20 +77,17 @@ namespace Wilson.Player
             {
                 if (mSelectedWire != null)
                 {
-                    RaycastHit2D[] hits = Physics2D.RaycastAll(Input.mousePosition, Vector2.right, 1f);
+                    RaycastHit2D[] hits = Physics2D.RaycastAll(worldPos, Vector2.zero);
                     foreach (var hit in hits)
                     {
-                        if (hit.collider != null)
+                        var right = hit.collider?.GetComponentInParent<RightWire>();
+                        if (right != null)
                         {
-                            var right = hit.collider.GetComponentInParent<RightWire>();
-                            if (right != null)
-                            {
-                                mSelectedWire.SetTarget(hit.transform.position, -50f);
-                                mSelectedWire.ConnectWire(right);
-                                right.ConnectWire(mSelectedWire);
-                                mSelectedWire = null;
-                                return;
-                            }
+                            mSelectedWire.SetTarget(hit.transform.position, -50f);
+                            mSelectedWire.ConnectWire(right);
+                            right.ConnectWire(mSelectedWire);
+                            mSelectedWire = null;
+                            return;
                         }
                     }
 
@@ -98,9 +99,8 @@ namespace Wilson.Player
 
             if (mSelectedWire != null)
             {
-                mSelectedWire.SetTarget(Input.mousePosition, -15f);
+                mSelectedWire.SetTarget(worldPos, -15f);
             }
-
         }
     }
 }
