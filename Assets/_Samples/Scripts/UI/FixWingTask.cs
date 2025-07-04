@@ -1,7 +1,7 @@
-using NUnit.Framework;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
+
 namespace Wilson.Player
 {
     public enum EWireColor
@@ -12,9 +12,9 @@ namespace Wilson.Player
         Yellow,
         Magenta
     }
+
     public class FixWingTask : MonoBehaviour
     {
-
         [SerializeField]
         private List<LeftWire> mLeftWires;
 
@@ -25,47 +25,60 @@ namespace Wilson.Player
 
         private void OnEnable()
         {
-            List<int> numberPool = new List<int>();
-            for (int i = 0; i < 4; i++)
+            List<int> numberPool = new List<int> { 0, 1, 2, 3 };
+
+            // 왼쪽 전선 색상 섞기
+            for (int i = 0; i < mLeftWires.Count; i++)
             {
-                numberPool.Add(i);
+                int rand = Random.Range(0, numberPool.Count);
+                mLeftWires[i].SetWireColor((EWireColor)numberPool[rand]);
+                numberPool.RemoveAt(rand);
             }
 
-            int index = 0;
-            while (numberPool.Count != 0)
-            {
-                var number = numberPool[Random.Range(0, numberPool.Count)];
-                mLeftWires[index++].SetWireColor((EWireColor)number);
-                numberPool.Remove(number);
-            }
+            numberPool = new List<int> { 0, 1, 2, 3 };
 
-            for (int i = 0; i < 4; i++)
+            // 오른쪽 전선 색상 섞기
+            for (int i = 0; i < mRightWires.Count; i++)
             {
-                numberPool.Add(i);
-            }
-
-            index = 0;
-            while (numberPool.Count != 0)
-            {
-                var number = numberPool[Random.Range(0, numberPool.Count)];
-                mRightWires[index++].SetWireColor((EWireColor)number);
-                numberPool.Remove(number);
+                int rand = Random.Range(0, numberPool.Count);
+                mRightWires[i].SetWireColor((EWireColor)numberPool[rand]);
+                numberPool.RemoveAt(rand);
             }
         }
 
-        // Update is called once per frame
-        void Update()
+        private void Update()
         {
             Vector3 mousePos = Input.mousePosition;
-            mousePos.z = 0f; // 또는 Camera.main.nearClipPlane
             Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
+            worldPos.z = 0f;
 
+            // 🖱 클릭 시작
             if (Input.GetMouseButtonDown(0))
             {
-                RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
-                if (hit.collider != null)
+                // 1. UI에서 클릭 감지
+                PointerEventData pointerData = new PointerEventData(EventSystem.current)
                 {
-                    var left = hit.collider.GetComponentInParent<LeftWire>();
+                    position = Input.mousePosition
+                };
+
+                List<RaycastResult> uiHits = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(pointerData, uiHits);
+
+                foreach (RaycastResult result in uiHits)
+                {
+                    var left = result.gameObject.GetComponentInParent<LeftWire>();
+                    if (left != null)
+                    {
+                        mSelectedWire = left;
+                        return;
+                    }
+                }
+
+                // 2. 월드 오브젝트 클릭 감지
+                RaycastHit2D worldHit = Physics2D.Raycast(worldPos, Vector2.zero);
+                if (worldHit.collider != null)
+                {
+                    var left = worldHit.collider.GetComponentInParent<LeftWire>();
                     if (left != null)
                     {
                         mSelectedWire = left;
@@ -73,30 +86,64 @@ namespace Wilson.Player
                 }
             }
 
+            // 🖱 클릭 놓음
             if (Input.GetMouseButtonUp(0))
             {
                 if (mSelectedWire != null)
                 {
-                    RaycastHit2D[] hits = Physics2D.RaycastAll(worldPos, Vector2.zero);
-                    foreach (var hit in hits)
+                    bool connected = false;
+
+                    // 1. UI 대상 확인
+                    PointerEventData pointerData = new PointerEventData(EventSystem.current)
                     {
-                        var right = hit.collider?.GetComponentInParent<RightWire>();
+                        position = Input.mousePosition
+                    };
+
+                    List<RaycastResult> uiHits = new List<RaycastResult>();
+                    EventSystem.current.RaycastAll(pointerData, uiHits);
+
+                    foreach (RaycastResult result in uiHits)
+                    {
+                        var right = result.gameObject.GetComponentInParent<RightWire>();
                         if (right != null)
                         {
-                            mSelectedWire.SetTarget(hit.transform.position, -50f);
+                            mSelectedWire.SetTarget(result.gameObject.transform.position, -50f);
                             mSelectedWire.ConnectWire(right);
                             right.ConnectWire(mSelectedWire);
-                            mSelectedWire = null;
-                            return;
+                            connected = true;
+                            break;
                         }
                     }
 
-                    mSelectedWire.ResetTarget();
-                    mSelectedWire.DisconnectWire();
+                    // 2. 월드 대상 확인
+                    if (!connected)
+                    {
+                        RaycastHit2D[] worldHits = Physics2D.RaycastAll(worldPos, Vector2.zero);
+                        foreach (var hit in worldHits)
+                        {
+                            var right = hit.collider?.GetComponentInParent<RightWire>();
+                            if (right != null)
+                            {
+                                mSelectedWire.SetTarget(hit.transform.position, -50f);
+                                mSelectedWire.ConnectWire(right);
+                                right.ConnectWire(mSelectedWire);
+                                connected = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!connected)
+                    {
+                        mSelectedWire.ResetTarget();
+                        mSelectedWire.DisconnectWire();
+                    }
+
                     mSelectedWire = null;
                 }
             }
 
+            // 🖱 드래그 중 (선 연장)
             if (mSelectedWire != null)
             {
                 mSelectedWire.SetTarget(worldPos, -15f);

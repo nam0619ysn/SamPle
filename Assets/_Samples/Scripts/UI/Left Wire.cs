@@ -34,11 +34,19 @@ namespace Wilson.Player
 
         public void SetTarget(Vector3 targetPosition, float offset)
         {
-            float angle = Vector2.SignedAngle(transform.position + Vector3.right - transform.position,
-                targetPosition - transform.position);
-            float distance = (Vector2.Distance(mWireBody.transform.position, targetPosition) + offset);
-            mWireBody.localRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
-            mWireBody.sizeDelta = new Vector2(distance * (1 / mGameCanvas.transform.localScale.x), mWireBody.sizeDelta.y);
+            // 1. Canvas 스케일 반영
+            float scaleFactor = mGameCanvas.transform.localScale.x;
+
+            // 2. 각도 계산
+            Vector2 direction = targetPosition - mWireBody.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+            // 3. 거리 계산
+            float distance = direction.magnitude + offset;
+
+            // 4. 적용
+            mWireBody.localRotation = Quaternion.Euler(0, 0, angle);
+            mWireBody.sizeDelta = new Vector2(distance / scaleFactor, mWireBody.sizeDelta.y);
         }
 
         public void ResetTarget()
