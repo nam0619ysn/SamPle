@@ -2026,9 +2026,9 @@ RectTransform:
   - {fileID: 332820649}
   m_Father: {fileID: 433856342708574739}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 0.5}
-  m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -4.7}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 0, y: 0.5}
+  m_AnchoredPosition: {x: 30, y: -4.7}
   m_SizeDelta: {x: 0, y: 11.5}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!224 &2458825278911579974
@@ -2491,7 +2491,7 @@ MonoBehaviour:
   mLightImage: {fileID: 332820650}
   mConnectedWire: {fileID: 0}
   mWireBody: {fileID: 2429769291473274063}
-  offset: 15
+  offset: 5
 --- !u!222 &3717401929668147856
 CanvasRenderer:
   m_ObjectHideFlags: 0
